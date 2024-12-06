@@ -1,21 +1,41 @@
 from flask import Flask
+from flask_migrate import Migrate
 from connectors.config import Config
-from models.user import db
+from connectors.db import db  # Connector database
+from flask_mail import Mail  # Mail untuk pengiriman OTP
+from routes import register_routes  # Import fungsi untuk mendaftarkan semua routes
 
-# Inisialisasi aplikasi Flask
-app = Flask(__name__)
+# Inisialisasi Flask dan Flask-Mail
+mail = Mail()
 
-# Menggunakan konfigurasi dari config.py
-app.config.from_object(Config)
+def create_app():
+    """Factory function untuk membuat instance aplikasi Flask."""
+    app = Flask(__name__)
 
-db.init_app(app)
+    # Menggunakan konfigurasi dari config.py
+    app.config.from_object(Config)
+    
+    # Inisialisasi ekstensi
+    db.init_app(app)
+    mail.init_app(app)
 
-with app.app_context():
-    db.create_all()
+    # Inisialisasi Flask-Migrate
+    migrate = Migrate(app, db)
 
-@app.route('/')
-def home():
-    return {"message": "Welcome to Flask!"}
+    # Register semua routes dari folder routes
+    register_routes(app)
 
-if __name__ == "_main_":
+    # Inisialisasi tabel database jika diperlukan
+    with app.app_context():
+        db.create_all()
+
+    @app.route('/')
+    def home():
+        return {"message": "Welcome to Flask!"}
+
+    return app
+
+if __name__ == "__main__":
+    # Jalankan aplikasi
+    app = create_app()
     app.run(debug=True)

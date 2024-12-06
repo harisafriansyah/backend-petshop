@@ -8,7 +8,6 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     nama = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
-    username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     foto_profil = db.Column(db.String(255), nullable=True)  # Path to the profile picture
     alamat = db.Column(db.String(255), nullable=True)
