@@ -7,6 +7,8 @@ from flask_mail import Message
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
 
+# Cooldown time in seconds
+COOLDOWN_TIME = 60
 
 # Generate OTP
 def generate_otp():
@@ -29,25 +31,16 @@ def send_otp_email(email, otp_code, subject="Your Registration OTP"):
         current_app.logger.error(f"Failed to send OTP email: {e}")
         return False, f"Failed to send email: {e}"
 
-# Step 1: Register user and send OTP
-def register_user():
-    data = request.get_json()
-    
-    # Validasi input
-    first_name = data.get('first_name')
-    last_name = data.get('last_name')
-    email = data.get('email')
-    password = data.get('password')
+# Utility: Clear expired OTPs
+def clear_expired_otps():
+    """Remove expired OTPs from the database."""
+    OTP.query.filter(OTP.expires_at < datetime.utcnow()).delete()
+    db.session.commit()
+    current_app.logger.info("Expired OTPs cleared.")
 
-    if not all([first_name, last_name, email, password]):
-        return jsonify({"error": "All fields are required"}), 400
-
-    # Cek apakah email sudah terdaftar
-    existing_user = User.query.filter_by(email=email).first()
-    if existing_user:
-        return jsonify({"error": "Email is already registered"}), 400
-
-    # Hapus OTP lama dan buat OTP baru
+# Utility: Save OTP
+def save_new_otp(email):
+    """Delete existing OTP and save a new one."""
     OTP.query.filter_by(email=email).delete()
     otp_code = generate_otp()
     new_otp = OTP(
@@ -57,97 +50,101 @@ def register_user():
     )
     db.session.add(new_otp)
     db.session.commit()
+    return otp_code
+
+# Check OTP Cooldown
+def is_otp_in_cooldown(email):
+    """Check OTP cooldown status."""
+    otp_entry = OTP.query.filter_by(email=email).first()
+    if otp_entry:
+        time_since_creation = (datetime.utcnow() - otp_entry.created_at).total_seconds()
+        if time_since_creation < COOLDOWN_TIME:
+            return True, int(COOLDOWN_TIME - time_since_creation)
+    return False, 0    
+
+# Validate input data
+def validate_data(data, required_fields):
+    """Validate if all required fields are present."""
+    missing = [field for field in required_fields if not data.get(field)]
+    if missing:
+        return False, f"Missing fields: {', '.join(missing)}"
+    return True, None    
+
+# Step 1: Register user and send OTP
+def register_user():
+    """Handle user registration and send OTP."""
+    data = request.get_json()
+    
+    # Validasi input
+    valid, message = validate_data(data, ['first_name', 'last_name', 'email', 'password'])
+    if not valid:
+        return jsonify({"status": "error", "message": message}), 400
+
+    # Cek apakah email sudah terdaftar
+    email = data.get('email')
+    if User.query.filter_by(email=email).first():
+        return jsonify({"status": "error", "message": "Email is already registered"}), 400
 
     # Kirim OTP
+    otp_code = save_new_otp(email)
     success, message = send_otp_email(email, otp_code)
     if not success:
-        return jsonify({"error": message}), 500
+        return jsonify({"status": "error", "message": message}), 500
 
-    return jsonify({"message": message}), 200
+    return jsonify({"status": "success", "message": message}), 200
 
 # Step 2: Verify OTP and complete registration
 def verify_otp():
     """Handle OTP verification."""
-    try:
-        # Hapus OTP yang sudah kedaluwarsa
-        OTP.query.filter(OTP.expires_at < datetime.utcnow()).delete()
-        db.session.commit()
+    # Hapus OTP yang sudah kedaluwarsa
+    clear_expired_otps()
+    data = request.get_json()
+    valid, message = validate_data(data, ['email', 'otp', 'password', 'first_name', 'last_name'])
+    if not valid:
+        return jsonify({"status": "error", "message": message}), 400
 
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "No data provided"}), 400
+    # Fetch OTP
+    email = data.get('email')
+    otp_code = data.get('otp')
+    otp_entry = OTP.query.filter_by(email=email, otp_code=otp_code).first()
+    if not otp_entry or otp_entry.expires_at < datetime.utcnow():
+        return jsonify({"status": "error", "message": "Invalid or expired OTP"}), 400
 
-        email = data.get('email')
-        otp_code = data.get('otp')
-        password = data.get('password')
-        first_name = data.get('first_name')
-        last_name = data.get('last_name')
+    # Buat pengguna baru
+    new_user = User(
+        email=email,
+        password=generate_password_hash(data.get('password')),
+        first_name=data.get('first_name'),
+        last_name=data.get('last_name')
+    )
+    db.session.add(new_user)
+    db.session.delete(otp_entry)  # Hapus OTP yang sudah diverifikasi
+    db.session.commit()
 
-        # Validasi input
-        if not all([email, otp_code, password, first_name, last_name]):
-            return jsonify({"error": "All fields are required"}), 400
+    return jsonify({"status": "success", "message": "Registration completed successfully"}), 201
 
-       # Fetch OTP entry
-        otp_entry = OTP.query.filter_by(email=email, otp_code=otp_code).first()
-        if not otp_entry:
-            return jsonify({"error": "Invalid OTP"}), 400
-
-        # Periksa apakah OTP sudah kedaluwarsa
-        if otp_entry.expires_at < datetime.utcnow():
-            db.session.delete(otp_entry)  # Hapus OTP kedaluwarsa
-            db.session.commit()
-            return jsonify({"error": "OTP has expired"}), 400
-
-        # Cek apakah pengguna sudah ada
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user:
-            return jsonify({"error": "User already exists"}), 400
-
-        # Buat pengguna baru
-        new_user = User(
-            email=email,
-            password=generate_password_hash(password),
-            first_name=data.get('first_name'),
-            last_name=data.get('last_name')
-        )
-        db.session.add(new_user)
-        db.session.delete(otp_entry)  # Hapus OTP yang sudah diverifikasi
-        db.session.commit()
-
-        return jsonify({"message": "Registration completed successfully"}), 201
-    except Exception as e:
-        current_app.logger.error(f"Error: {e}")  # Log error yang terjadi
-        db.session.rollback()  # Rollback jika ada error
-        return jsonify({"error": f"An error occurred: {e}"}), 500
-
-# Resend OTP
+# Resend OTP with cooldown check
 def resend_otp():
-    """Handle Resend OTP."""
-    try:
-        data = request.get_json()
-        email = data.get('email')
+    """Handle Resend OTP with cooldown."""
+    data = request.get_json()
+    valid, message = validate_data(data, ['email'])
+    if not valid:
+        return jsonify({"status": "error", "message": message}), 400
 
-        if not email:
-            return jsonify({"error": "Email is required"}), 400
+    email = data.get('email')
 
-        # Hapus OTP lama dan buat OTP baru
-        OTP.query.filter_by(email=email).delete()
-        otp_code = generate_otp()
-        new_otp = OTP(
-            email=email,
-            otp_code=otp_code,
-            expires_at=datetime.utcnow() + timedelta(minutes=5)
-        )
-        db.session.add(new_otp)
-        db.session.commit()
+    # Check for OTP cooldown
+    in_cooldown, remaining_time = is_otp_in_cooldown(email)
+    if in_cooldown:
+        return jsonify({
+            "status": "error",
+            "message": f"Please wait {remaining_time} seconds before requesting a new OTP"
+        }), 429
 
-        # Kirim OTP baru
-        success, message = send_otp_email(email, otp_code, subject="Your New Registration OTP")
-        if not success:
-            return jsonify({"error": message}), 500
+    # Generate and send new OTP
+    otp_code = save_new_otp(email)
+    success, message = send_otp_email(email, otp_code, subject="Your New Registration OTP")
+    if not success:
+        return jsonify({"status": "error", "message": message}), 500
 
-        return jsonify({"message": message}), 200
-    except Exception as e:
-        current_app.logger.error(f"Error: {e}")
-        db.session.rollback()
-        return jsonify({"error": f"An error occurred: {e}"}), 500
+    return jsonify({"status": "success", "message": message}), 200
