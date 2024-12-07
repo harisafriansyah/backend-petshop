@@ -15,6 +15,8 @@ flask-sqlalchemy = "^3.1.1"
 flask-mail = "^0.10.0"
 pymysql = "^1.1.1"
 flask-migrate = "^4.0.7"
+pyjwt = "^2.10.1"
+python-dateutil = "^2.9.0.post0"
 
 
 [build-system]

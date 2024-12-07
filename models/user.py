@@ -34,6 +34,11 @@ class User(db.Model):
         self.no_tlp = no_tlp
         self.foto_profil = foto_profil
 
+    def __init__(self, email, first_name, last_name):
+        self.email = email
+        self.first_name = first_name
+        self.last_name = last_name
+        
     def set_password(self, password):
         """Hash and set the user's password."""
         self.password_hash = generate_password_hash(password)
