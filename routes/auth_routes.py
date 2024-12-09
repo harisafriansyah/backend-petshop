@@ -1,6 +1,6 @@
 from flask import Blueprint
 from controllers.RegisterController import register_user, verify_otp, resend_otp
-from controllers.LoginController import login, refresh_token, logout
+from controllers.LoginController import login, refresh_token, logout, check_refresh_token
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -13,3 +13,4 @@ auth_bp.route('/resend-otp', methods=['POST'])(resend_otp)
 auth_bp.route('/login', methods=['POST'])(login)
 auth_bp.route('/refresh-token', methods=['POST'])(refresh_token)
 auth_bp.route('/logout', methods=['POST'])(logout)
+auth_bp.route('/check-refresh-token', methods=['POST'])(check_refresh_token)
