@@ -2,6 +2,7 @@ from flask import Flask
 from routes.auth_routes import auth_bp
 from routes.user_routes import user_bp
 from routes.seller_routes import seller_bp
+from routes.product_routes import product_bp
 
 def register_all_routes(app: Flask):
     """
@@ -11,3 +12,4 @@ def register_all_routes(app: Flask):
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(user_bp, url_prefix='/user')
     app.register_blueprint(seller_bp, url_prefix='/seller')
+    app.register_blueprint(product_bp, url_prefix='/products')

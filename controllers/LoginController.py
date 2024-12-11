@@ -18,7 +18,7 @@ def create_token(data, expires_in):
     payload = {
         "exp": datetime.utcnow() + expires_in,
         "iat": datetime.utcnow(),
-        "sub": str(data)  # Ensure `data` is converted to a string
+        "sub": json.dumps(data)
     }
     return jwt.encode(payload, current_app.config["JWT_SECRET_KEY"], algorithm="HS256")
 
@@ -31,7 +31,7 @@ def decode_token(token):
     """
     try:
         payload = jwt.decode(token, current_app.config["JWT_SECRET_KEY"], algorithms=["HS256"])
-        payload["sub"] = eval(payload["sub"])  # Convert string back to dictionary (use `eval` carefully)
+        payload["sub"] = json.loads(payload["sub"])
         return payload, None
     except jwt.ExpiredSignatureError:
         return None, "Token has expired"
