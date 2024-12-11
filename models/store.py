@@ -7,20 +7,17 @@ class Store(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     nama_toko = db.Column(db.String(100), nullable=False)
-    alamat_toko = db.Column(db.String(200), nullable=False)
-    no_tlp = db.Column(db.String(15), nullable=False)
-    bank = db.Column(db.String(200), nullable=False)
-    no_rek = db.Column(db.String(50), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow, nullable=False)
+    nama_domain = db.Column(db.String(100), unique=True, nullable=False)
+    alamat_lengkap = db.Column(db.Text, nullable=False)
+    deskripsi_toko = db.Column(db.Text, nullable=True)
 
-    def __init__(self, user_id, nama_toko, alamat_toko, no_tlp, bank, no_rek):
-        self.user_id = user_id
-        self.nama_toko = nama_toko
-        self.alamat_toko = alamat_toko
-        self.no_tlp = no_tlp
-        self.bank = bank
-        self.no_rek = no_rek
+     # Default status langsung aktif
+    status = db.Column(db.String(20), default="active", nullable=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+
+    owner = db.relationship('User', back_populates='stores')
 
     def __repr__(self):
-        return f"<Store {self.nama_toko}>"
+        return f"<Store {self.nama_toko} (status={self.status})>"

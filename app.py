@@ -1,9 +1,9 @@
 from flask import Flask
 from flask_migrate import Migrate
 from connectors.config import Config
-from connectors.db import db  # Connector database
+from connectors.db import db, jwt  # Connector database
 from flask_mail import Mail  # Mail untuk pengiriman OTP
-from routes import register_routes  # Import fungsi untuk mendaftarkan semua routes
+from routes import register_all_routes  # Import fungsi untuk mendaftarkan semua routes
 
 # Inisialisasi Flask dan Flask-Mail
 mail = Mail()
@@ -18,12 +18,13 @@ def create_app():
     # Inisialisasi ekstensi
     db.init_app(app)
     mail.init_app(app)
+    jwt.init_app(app)
 
     # Inisialisasi Flask-Migrate
     migrate = Migrate(app, db)
 
     # Register semua routes dari folder routes
-    register_routes(app)
+    register_all_routes(app)
 
     # Inisialisasi tabel database jika diperlukan
     with app.app_context():

@@ -14,7 +14,8 @@ class User(db.Model):
     last_name = db.Column(db.String(50), nullable=False)
     foto_profil = db.Column(db.String(255), nullable=True)
     no_tlp = db.Column(db.String(15), nullable=True)  
-    
+    is_seller = db.Column(db.Boolean, default=False)  # Default is buyer
+
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
@@ -23,21 +24,21 @@ class User(db.Model):
     # Relasi
     addresses = db.relationship("Address", backref="user", lazy=True, cascade="all, delete-orphan")
     banks = db.relationship("Bank", backref="user", lazy=True, cascade="all, delete-orphan")
-    stores = db.relationship("Store", backref="owner", lazy=True, cascade="all, delete-orphan")
-
+    stores = db.relationship(
+        "Store",
+        back_populates="owner",
+        cascade="all, delete-orphan",
+        overlaps="owner,seller"
+    )
     # Constructor
-    def __init__(self, email, password, first_name, last_name, no_tlp=None, foto_profil=None):
+    def __init__(self, email, password=None, first_name=None, last_name=None, no_tlp=None, foto_profil=None):
         self.email = email
-        self.set_password(password)
         self.first_name = first_name
         self.last_name = last_name
         self.no_tlp = no_tlp
         self.foto_profil = foto_profil
-
-    def __init__(self, email, first_name, last_name):
-        self.email = email
-        self.first_name = first_name
-        self.last_name = last_name
+        if password:
+            self.set_password(password)
         
     def set_password(self, password):
         """Hash and set the user's password."""
@@ -47,5 +48,9 @@ class User(db.Model):
         """Check hashed password."""
         return check_password_hash(self.password_hash, password)
 
+    def toggle_seller(self):
+        """Toggle seller role."""
+        self.is_seller = not self.is_seller
+        
     def __repr__(self):
         return f"<User {self.email}>"

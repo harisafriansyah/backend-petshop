@@ -2,8 +2,9 @@ from flask import request, jsonify, current_app
 from connectors.db import db  # Database connector
 from models.user import User  # User model
 from werkzeug.security import check_password_hash
-import jwt, json
+import jwt
 from datetime import datetime, timedelta
+import json
 
 
 # Helper function to create JWT
@@ -11,16 +12,15 @@ def create_token(data, expires_in):
     """
     Generate a JWT token with expiration.
     :param data: Payload to include in the token.
-    :param expires_in: Expiration time in minutes.
+    :param expires_in: Expiration time as a timedelta object.
     :return: Encoded JWT token.
     """
     payload = {
-        "exp": datetime.utcnow() + timedelta(minutes=expires_in),
+        "exp": datetime.utcnow() + expires_in,
         "iat": datetime.utcnow(),
-        "sub": json.dumps(data)  # Convert dictionary to JSON string
+        "sub": str(data)  # Ensure `data` is converted to a string
     }
-    current_app.logger.info(f"Creating token with payload: {payload}")
-    return jwt.encode(payload, current_app.config["SECRET_KEY"], algorithm="HS256")
+    return jwt.encode(payload, current_app.config["JWT_SECRET_KEY"], algorithm="HS256")
 
 # Helper function to decode JWT
 def decode_token(token):
@@ -30,8 +30,8 @@ def decode_token(token):
     :return: Decoded payload or error message.
     """
     try:
-        payload = jwt.decode(token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
-        payload["sub"] = json.loads(payload["sub"])  # Convert JSON string back to dictionary
+        payload = jwt.decode(token, current_app.config["JWT_SECRET_KEY"], algorithms=["HS256"])
+        payload["sub"] = eval(payload["sub"])  # Convert string back to dictionary (use `eval` carefully)
         return payload, None
     except jwt.ExpiredSignatureError:
         return None, "Token has expired"
@@ -52,16 +52,19 @@ def login():
     if not email or not password:
         return jsonify({"status": "error", "message": "Email and password are required"}), 400
 
+    # Find user by email
     user = User.query.filter_by(email=email).first()
     if not user or not check_password_hash(user.password_hash, password):
         current_app.logger.warning(f"Login failed for email: {email}")
         return jsonify({"status": "error", "message": "Invalid email or password"}), 401
 
-    access_token_expires = int(current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES", 15))
-    refresh_token_expires = int(current_app.config.get("JWT_REFRESH_TOKEN_EXPIRES", 7 * 24 * 60))
+    # Token expiration settings
+    access_token_expires = current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES", timedelta(minutes=15))
+    refresh_token_expires = current_app.config.get("JWT_REFRESH_TOKEN_EXPIRES", timedelta(days=7))
 
+    # Generate tokens
     access_token = create_token({"id": user.id, "email": user.email}, access_token_expires)
-    refresh_token = create_token({"id": user.id, "email": user.email}, refresh_token_expires)
+    refresh_token = create_token({"id": user.id}, refresh_token_expires)
 
     return jsonify({
         "status": "success",
@@ -88,7 +91,7 @@ def refresh_token():
         current_app.logger.error(f"Token decoding error: {error}")
         return jsonify({"status": "error", "message": error}), 401
 
-    access_token_expires = int(current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES", 15))
+    access_token_expires = current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES", timedelta(minutes=15))
     access_token = create_token(user_data["sub"], access_token_expires)
 
     return jsonify({
