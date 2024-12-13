@@ -1,20 +1,28 @@
-# Use an official Python image
+# Base image with Python
 FROM python:3.9-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    default-libmysqlclient-dev \
+    libmariadb-dev \
+    pkg-config \
+    && apt-get clean
 
 # Set the working directory
 WORKDIR /app
 
 # Copy project files
-COPY . /app
+COPY . .
 
-# Install poetry
+# Install Poetry
 RUN pip install poetry
 
-# Install dependencies using poetry
+# Install dependencies using Poetry
 RUN poetry install --no-dev
 
-# Expose the port
+# Expose the application port
 EXPOSE 8080
 
-# Command to run the application
+# Run the application
 CMD ["poetry", "run", "flask", "run", "--host=0.0.0.0", "--port=8080"]
