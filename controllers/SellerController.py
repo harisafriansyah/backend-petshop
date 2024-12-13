@@ -51,3 +51,4 @@ def register_store():
     db.session.commit()
 
     return jsonify({"msg": "Store registered successfully", "status": "active"}), 201
+

@@ -1,6 +1,8 @@
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
+import cloudinary
+import cloudinary.uploader
 
 # Load environment variables from .env file
 load_dotenv()
@@ -48,3 +50,10 @@ class Config:
     # Token header name configuration
     JWT_HEADER_NAME = os.getenv('JWT_HEADER_NAME', 'Authorization')  # Default is 'Authorization'
     JWT_HEADER_TYPE = os.getenv('JWT_HEADER_TYPE', 'Bearer')  # Default is 'Bearer'
+
+    # Configure Cloudinary
+    cloudinary.config(
+        cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+        api_key=os.getenv("CLOUDINARY_API_KEY"),
+        api_secret=os.getenv("CLOUDINARY_API_SECRET")
+    )
