@@ -12,6 +12,14 @@ mysql = "^0.0.3"
 mysql-connector-python = "^9.1.0"
 sqlalchemy = "^2.0.36"
 flask-sqlalchemy = "^3.1.1"
+flask-mail = "^0.10.0"
+pymysql = "^1.1.1"
+flask-migrate = "^4.0.7"
+pyjwt = "^2.10.1"
+python-dateutil = "^2.9.0.post0"
+python-dotenv = "^1.0.1"
+flask-jwt-extended = "^4.7.1"
+cloudinary = "^1.41.0"
 
 
 [build-system]
