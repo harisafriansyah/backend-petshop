@@ -1,4 +1,5 @@
 import os
+import psycopg2
 from datetime import timedelta
 from dotenv import load_dotenv
 import cloudinary
@@ -12,11 +13,12 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_size": int(os.getenv('SQLALCHEMY_POOL_SIZE', 10)),  # Number of connections in the pool
-        "max_overflow": int(os.getenv('SQLALCHEMY_MAX_OVERFLOW', 5)),  # Additional connections if the pool is full
-        "pool_timeout": int(os.getenv('SQLALCHEMY_POOL_TIMEOUT', 30)),  # Wait time before timeout
-        "pool_recycle": int(os.getenv('SQLALCHEMY_POOL_RECYCLE', 1800)),  # Recycle connections every 30 minutes
+        "pool_size": int(os.getenv('SQLALCHEMY_POOL_SIZE', 10)),  # Default 10 connections
+        "max_overflow": int(os.getenv('SQLALCHEMY_MAX_OVERFLOW', 5)),  # Extra connections if pool full
+        "pool_timeout": int(os.getenv('SQLALCHEMY_POOL_TIMEOUT', 30)),  # Timeout in seconds
+        "pool_recycle": int(os.getenv('SQLALCHEMY_POOL_RECYCLE', 1800)),  # Recycle every 30 minutes
     }
+
 
     # Email configuration
     MAIL_SERVER = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
@@ -57,3 +59,16 @@ class Config:
         api_key=os.getenv("CLOUDINARY_API_KEY"),
         api_secret=os.getenv("CLOUDINARY_API_SECRET")
     )
+
+    @staticmethod
+    def check_database(app):
+        """Cek koneksi database dengan app context."""
+        try:
+            from connectors.db import db
+            from sqlalchemy import text
+            with app.app_context():
+                with db.engine.connect() as connection:
+                    connection.execute(text("SELECT 1"))
+            print("Database connection successful!")
+        except Exception as e:
+            print(f"Database connection failed: {e}")

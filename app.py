@@ -30,6 +30,9 @@ def create_app():
     # Register semua routes dari folder routes
     register_all_routes(app)
 
+    # Cek koneksi database
+    Config.check_database(app)
+
     # Inisialisasi tabel database jika diperlukan
     with app.app_context():
         db.create_all()
