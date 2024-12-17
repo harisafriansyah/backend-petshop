@@ -7,10 +7,74 @@ from models.store import Store
 from datetime import datetime
 import cloudinary.uploader
 import json
+from sqlalchemy import or_
 
+def search_and_filter_products():
+    """
+    Search and filter products based on query parameters.
+    """
+    search = request.args.get('search', '')
+    category = request.args.get('category', '')
+    min_price = request.args.get('min_price', type=float)
+    max_price = request.args.get('max_price', type=float)
+    sort_by = request.args.get('sort_by', 'nama_produk')
+    order = request.args.get('order', 'asc')
+
+    query = Product.query
+
+    if search:
+        query = query.filter(
+            or_(
+                Product.nama_produk.ilike(f"%{search}%"),
+                Product.deskripsi.ilike(f"%{search}%")
+            )
+        )
+
+    if category:
+        query = query.filter(Product.kategori == category)
+
+    if min_price is not None:
+        query = query.filter(Product.harga >= min_price)
+    if max_price is not None:
+        query = query.filter(Product.harga <= max_price)
+
+    if sort_by in ['harga', 'nama_produk']:
+        query = query.order_by(
+            getattr(Product, sort_by).desc() if order == 'desc' else getattr(Product, sort_by).asc()
+        )
+
+    products = query.all()
+
+    if not products:
+        return jsonify({"msg": "No products found"}), 404
+
+    products_list = [
+        {
+            "id": product.id,
+            "nama_produk": product.nama_produk,
+            "deskripsi": product.deskripsi,
+            "harga": product.harga,
+            "stok": product.stok,
+            "images": [{"id": img.id, "url": img.image_url} for img in product.images],
+            "kategori": product.kategori,
+            "jenis_hewan": product.jenis_hewan,
+            "berat": product.berat,
+            "ukuran": {
+                "panjang": product.panjang,
+                "lebar": product.lebar,
+                "tinggi": product.tinggi,
+            },
+        }
+        for product in products
+    ]
+
+    return jsonify({"msg": "Products retrieved successfully", "products": products_list}), 200
 
 # Public endpoint to retrieve all products
 def get_public_products():
+    """
+    Retrieve all public products.
+    """
     products = Product.query.all()
     if not products:
         return jsonify({"msg": "No products found"}), 404
@@ -39,6 +103,9 @@ def get_public_products():
 
 # Public or seller-specific endpoint to retrieve a product by ID
 def get_product_by_id(product_id):
+    """
+    Retrieve a specific product by its ID.
+    """
     user_data = None
     try:
         verify_jwt_in_request(optional=True)
