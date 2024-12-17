@@ -22,7 +22,8 @@ RUN pip install poetry
 RUN poetry install --no-dev
 
 # Expose the application port
-EXPOSE 8080
+EXPOSE 8000
 
 # Run the application
-CMD ["poetry", "run", "flask", "run", "--host=0.0.0.0", "--port=8000"]
+CMD ["poetry", "run", "flask", "run", "--host=0.0.0.0", "--port=${PORT:-8000}"]
+
