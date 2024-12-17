@@ -25,8 +25,11 @@ RUN poetry add psycopg2-binary
 # Install dependencies using Poetry
 RUN poetry install --no-dev
 
+# Set default port
+ENV PORT=8000
+
 # Expose the application port
-EXPOSE 8080
+EXPOSE ${PORT}
 
 # Run the application
-CMD ["poetry", "run", "flask", "run", "--host=0.0.0.0", "--port=${PORT:-8000}"]
+CMD ["sh", "-c", "poetry run flask run --host=0.0.0.0 --port=${PORT}"]
