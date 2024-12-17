@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 from flask_migrate import Migrate
 from connectors.config import Config
 from connectors.db import db, jwt  # Connector database
