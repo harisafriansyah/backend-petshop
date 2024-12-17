@@ -19,8 +19,8 @@ COPY . .
 # Install Poetry
 RUN pip install poetry
 
-# Use psycopg2-binary instead of psycopg2 (update your pyproject.toml)
-RUN poetry add psycopg2-binary --no-dev
+# Add psycopg2-binary
+RUN poetry add psycopg2-binary
 
 # Install dependencies using Poetry
 RUN poetry install --no-dev
