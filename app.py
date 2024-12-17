@@ -25,7 +25,7 @@ def create_app():
     migrate = Migrate(app, db)
 
     # Inisialisasi CORS untuk publik (semua origin bisa akses API)
-    CORS(app, resources={r"/": {"origins": ""}})
+    CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})
 
     # Register semua routes dari folder routes
     register_all_routes(app)
