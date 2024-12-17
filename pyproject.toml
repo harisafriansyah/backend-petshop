@@ -20,6 +20,7 @@ python-dateutil = "^2.9.0.post0"
 python-dotenv = "^1.0.1"
 flask-jwt-extended = "^4.7.1"
 cloudinary = "^1.41.0"
+flask-cors = "^5.0.0"
 
 
 [build-system]
