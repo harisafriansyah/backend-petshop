@@ -9,12 +9,14 @@ import cloudinary.uploader
 import json
 from sqlalchemy import or_
 
+
 def search_and_filter_products():
     """
     Search and filter products based on query parameters.
     """
     search = request.args.get('search', '')
     category = request.args.get('category', '')
+    animal_type = request.args.get('jenis_hewan', '')
     min_price = request.args.get('min_price', type=float)
     max_price = request.args.get('max_price', type=float)
     sort_by = request.args.get('sort_by', 'nama_produk')
@@ -32,6 +34,9 @@ def search_and_filter_products():
 
     if category:
         query = query.filter(Product.kategori == category)
+
+    if animal_type:
+        query = query.filter(Product.jenis_hewan == animal_type)
 
     if min_price is not None:
         query = query.filter(Product.harga >= min_price)
@@ -69,6 +74,68 @@ def search_and_filter_products():
     ]
 
     return jsonify({"msg": "Products retrieved successfully", "products": products_list}), 200
+
+
+def get_products_by_category():
+    """
+    Get products by category.
+    """
+    category = request.args.get('category')
+
+    if not category:
+        return jsonify({"msg": "Category parameter is required"}), 400
+
+    products = Product.query.filter_by(kategori=category).all()
+
+    if not products:
+        return jsonify({"msg": f"No products found for category '{category}'"}), 404
+
+    products_list = [
+        {
+            "id": product.id,
+            "nama_produk": product.nama_produk,
+            "deskripsi": product.deskripsi,
+            "harga": product.harga,
+            "stok": product.stok,
+            "images": [{"id": img.id, "url": img.image_url} for img in product.images],
+            "kategori": product.kategori,
+            "jenis_hewan": product.jenis_hewan,
+        }
+        for product in products
+    ]
+
+    return jsonify({"msg": "Products by category retrieved successfully", "products": products_list}), 200
+
+
+def get_products_by_animal_type():
+    """
+    Get products by animal type.
+    """
+    animal_type = request.args.get('jenis_hewan')
+
+    if not animal_type:
+        return jsonify({"msg": "Animal type parameter is required"}), 400
+
+    products = Product.query.filter_by(jenis_hewan=animal_type).all()
+
+    if not products:
+        return jsonify({"msg": f"No products found for animal type '{animal_type}'"}), 404
+
+    products_list = [
+        {
+            "id": product.id,
+            "nama_produk": product.nama_produk,
+            "deskripsi": product.deskripsi,
+            "harga": product.harga,
+            "stok": product.stok,
+            "images": [{"id": img.id, "url": img.image_url} for img in product.images],
+            "kategori": product.kategori,
+            "jenis_hewan": product.jenis_hewan,
+        }
+        for product in products
+    ]
+
+    return jsonify({"msg": "Products by animal type retrieved successfully", "products": products_list}), 200
 
 # Public endpoint to retrieve all products
 def get_public_products():
