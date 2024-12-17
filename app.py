@@ -23,6 +23,9 @@ def create_app():
     # Inisialisasi Flask-Migrate
     migrate = Migrate(app, db)
 
+    # Inisialisasi CORS untuk publik (semua origin bisa akses API)
+    CORS(app, resources={r"/": {"origins": ""}})
+
     # Register semua routes dari folder routes
     register_all_routes(app)
 
