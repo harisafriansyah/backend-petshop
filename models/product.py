@@ -32,6 +32,10 @@ class Product(db.Model):
         cascade='all, delete-orphan'
     )
 
+    # Relasi Promotion
+    promotions = db.relationship('Promotion', back_populates="product", cascade="all, delete-orphan")
+
+
     def __repr__(self):
         return f"<Product {self.nama_produk}>"
 

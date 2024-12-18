@@ -4,6 +4,7 @@ from routes.user_routes import user_bp
 from routes.seller_routes import seller_bp
 from routes.product_routes import product_bp
 from routes.file_upload_routes import file_upload_bp
+from routes.promotion_routes import promotion_bp
 
 def register_all_routes(app: Flask):
     """
@@ -15,3 +16,4 @@ def register_all_routes(app: Flask):
     app.register_blueprint(seller_bp, url_prefix='/seller')
     app.register_blueprint(product_bp, url_prefix='/products')
     app.register_blueprint(file_upload_bp, url_prefix='/files')
+    app.register_blueprint(promotion_bp, url_prefix='/promotions')
