@@ -35,6 +35,8 @@ class Product(db.Model):
     # Relasi Promotion
     promotions = db.relationship('Promotion', back_populates="product", cascade="all, delete-orphan")
 
+    # Relationship to Cart (newly added)
+    carts = db.relationship('Cart', back_populates='product', cascade='all, delete-orphan')
 
     def __repr__(self):
         return f"<Product {self.nama_produk}>"
@@ -48,22 +50,22 @@ class Product(db.Model):
     def get_images(self):
         return [img.image_url for img in self.images]
 
-def to_dict(self):
-    return {
-        "id": self.id,
-        "nama_produk": self.nama_produk,
-        "harga": self.harga,
-        "stok": self.stok,
-        "kategori": self.kategori,
-        "jenis_hewan": self.jenis_hewan,
-        "berat": self.berat,
-        "ukuran": {
-            "panjang": self.panjang,
-            "lebar": self.lebar,
-            "tinggi": self.tinggi,
-        },
-        "images": self.get_images(),
-        "created_at": self.created_at,
-        "updated_at": self.updated_at,
-    }
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nama_produk": self.nama_produk,
+            "harga": self.harga,
+            "stok": self.stok,
+            "kategori": self.kategori,
+            "jenis_hewan": self.jenis_hewan,
+            "berat": self.berat,
+            "ukuran": {
+                "panjang": self.panjang,
+                "lebar": self.lebar,
+                "tinggi": self.tinggi,
+            },
+            "images": self.get_images(),
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
 
