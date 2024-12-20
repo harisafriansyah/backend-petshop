@@ -25,7 +25,7 @@ def create_app():
     migrate = Migrate(app, db)
 
     # Inisialisasi CORS untuk publik (semua origin bisa akses API)
-    CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})
+    CORS(app, supports_credentials=True, resources={r"/*": {"origins": ["http://localhost:3000", "https://frontend-production-url.com"]}})
 
     # Register semua routes dari folder routes
     register_all_routes(app)
@@ -40,6 +40,12 @@ def create_app():
     @app.route('/')
     def home():
         return {"message": "Welcome to Flask!"}
+    
+    @app.after_request
+    def handle_options_response(response):
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        return response
 
     return app
 
