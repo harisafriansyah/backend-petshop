@@ -179,7 +179,6 @@ def update_order_status(order_id):
 
 # 5. Seller cek Order
 @jwt_required()
-@jwt_required()
 def seller_get_orders():
     try:
         # Parsing JSON string dari `get_jwt_identity()`
@@ -231,3 +230,46 @@ def seller_get_orders():
 
     except Exception as e:
         return jsonify({"message": "Error retrieving seller orders", "error": str(e)}), 500
+
+@jwt_required()
+def cancel_order(order_id):
+    """
+    Cancel an order if it is still in Pending or Processing status.
+    """
+    try:
+        # Parsing JSON string dari get_jwt_identity()
+        user_identity = json.loads(get_jwt_identity())
+        user_id = user_identity["id"]
+
+        # Query pesanan berdasarkan ID dan user ID
+        order = Order.query.filter_by(id=order_id, user_id=user_id).first()
+
+        if not order:
+            return jsonify({"message": "Order not found"}), 404
+
+        # Validasi status pesanan
+        if order.status == 'Completed':
+            return jsonify({"message": "Completed orders cannot be cancelled"}), 400
+
+        if order.status == 'Cancelled':
+            return jsonify({"message": "Order is already cancelled"}), 400
+
+        # Rollback stok produk dalam pesanan
+        for item in order.order_items:
+            product = Product.query.get(item.product_id)
+            if product:
+                product.stok += item.quantity
+
+        # Perbarui status pesanan
+        order.status = 'Cancelled'
+        db.session.commit()
+
+        return jsonify({
+            "message": "Order cancelled successfully",
+            "order_id": order.id,
+            "status": order.status
+        }), 200
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({"message": "Error cancelling order", "error": str(e)}), 500
