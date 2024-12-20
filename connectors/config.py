@@ -34,7 +34,7 @@ class Config:
 
     # JWT configuration
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')  # Ensure this is set securely in .env
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 15)))  # Default 15 minutes
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 120)))  # Default 15 minutes
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=int(os.getenv('JWT_REFRESH_TOKEN_EXPIRES', 7)))  # Default 7 days
 
     # Token location configuration

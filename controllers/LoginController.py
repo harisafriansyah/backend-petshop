@@ -6,6 +6,15 @@ import jwt
 from datetime import datetime, timedelta
 import json
 
+from flask import request, jsonify, current_app
+from connectors.db import db
+from models.user import User
+from models.store import Store
+from werkzeug.security import check_password_hash
+import jwt
+from datetime import datetime, timedelta
+import json
+
 # Helper function to create JWT
 def create_token(data, expires_in):
     """
@@ -17,7 +26,7 @@ def create_token(data, expires_in):
     payload = {
         "exp": datetime.utcnow() + expires_in,
         "iat": datetime.utcnow(),
-        "sub": json.dumps(data)  # Konversi data menjadi string
+        "sub": json.dumps(data)  # Convert data to string for JWT compatibility
     }
     return jwt.encode(payload, current_app.config["JWT_SECRET_KEY"], algorithm="HS256")
 
@@ -31,7 +40,7 @@ def decode_token(token):
     """
     try:
         payload = jwt.decode(token, current_app.config["JWT_SECRET_KEY"], algorithms=["HS256"])
-        payload["sub"] = json.loads(payload["sub"])  # Konversi kembali ke dictionary
+        payload["sub"] = json.loads(payload["sub"])  # Convert back to dictionary
         return payload, None
     except jwt.ExpiredSignatureError:
         return None, "Token has expired"
@@ -58,13 +67,22 @@ def login():
         current_app.logger.warning(f"Login failed for email: {email}")
         return jsonify({"status": "error", "message": "Invalid email or password"}), 401
 
+    # Get store domain if the user has a store
+    store = Store.query.filter_by(user_id=user.id).first()
+    store_domain = store.nama_domain if store else None
+
     # Token expiration settings
     access_token_expires = current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES", timedelta(minutes=15))
     refresh_token_expires = current_app.config.get("JWT_REFRESH_TOKEN_EXPIRES", timedelta(days=7))
 
     # Generate tokens
     access_token = create_token(
-        {"id": user.id, "email": user.email, "is_seller": user.is_seller},
+        {
+            "id": user.id,
+            "email": user.email,
+            "is_seller": user.is_seller,
+            "store_domain": store_domain  # Add store domain to payload
+        },
         access_token_expires
     )
     refresh_token = create_token({"id": user.id}, refresh_token_expires)
@@ -73,7 +91,8 @@ def login():
         "status": "success",
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "is_seller": user.is_seller,  # Include user's seller status
+        "is_seller": user.is_seller,
+        "store_domain": store_domain,  # Include store domain in response
         "message": "Login successful"
     }), 200
 
@@ -100,18 +119,29 @@ def refresh_token():
     if not user:
         return jsonify({"status": "error", "message": "User not found"}), 404
 
+    # Get store domain if the user has a store
+    store = Store.query.filter_by(user_id=user.id).first()
+    store_domain = store.nama_domain if store else None
+
     access_token_expires = current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES", timedelta(minutes=15))
     access_token = create_token(
-        {"id": user.id, "email": user.email, "is_seller": user.is_seller},
+        {
+            "id": user.id,
+            "email": user.email,
+            "is_seller": user.is_seller,
+            "store_domain": store_domain  # Add store domain to payload
+        },
         access_token_expires
     )
 
     return jsonify({
         "status": "success",
         "access_token": access_token,
-        "is_seller": user.is_seller,  # Return updated seller status
+        "is_seller": user.is_seller,
+        "store_domain": store_domain,
         "message": "Access token refreshed"
     }), 200
+
 
 
 # Logout endpoint
