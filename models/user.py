@@ -30,6 +30,8 @@ class User(db.Model):
         cascade="all, delete-orphan",
         overlaps="owner,seller"
     )
+    orders = db.relationship('Order', backref='user', lazy=True)
+
     # Constructor
     def __init__(self, email, password=None, first_name=None, last_name=None, no_tlp=None, foto_profil=None):
         self.email = email

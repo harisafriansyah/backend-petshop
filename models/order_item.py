@@ -7,4 +7,4 @@ class OrderItem(db.Model):
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
-    price = db.Column(db.Float, nullable=False)  # Harga untuk item ini (quantity * harga produk)
+    price = db.Column(db.Float, nullable=False)  # Total harga untuk item ini (quantity * harga produk)

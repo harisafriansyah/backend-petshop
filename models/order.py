@@ -8,4 +8,6 @@ class Order(db.Model):
     status = db.Column(db.String(50), nullable=False, default='Pending')  # Status: Pending, Processing, Completed, Cancelled
     total_price = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
     order_items = db.relationship('OrderItem', backref='order', lazy=True)

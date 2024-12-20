@@ -6,6 +6,7 @@ from controllers.ProductController import (
     get_seller_products
 )
 from controllers.SellerController import register_store
+from controllers.CheckoutOrderController import update_order_status, seller_get_orders
 
 seller_bp = Blueprint('seller', __name__)
 
@@ -17,3 +18,6 @@ seller_bp.route('/create-products', methods=['POST'])(create_product)  # Create 
 seller_bp.route('/products', methods=['GET'])(get_seller_products)  # Get seller products
 seller_bp.route('/products/<int:product_id>', methods=['PUT'])(update_product)  # Update product
 seller_bp.route('/products/<int:product_id>', methods=['DELETE'])(delete_product)  # Delete product
+
+seller_bp.route('/order', methods=['GET'])(seller_get_orders)
+seller_bp.route('/order/<int:order_id>/status', methods=['PUT'])(update_order_status)
