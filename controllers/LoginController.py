@@ -6,7 +6,6 @@ import jwt
 from datetime import datetime, timedelta
 import json
 
-
 # Helper function to create JWT
 def create_token(data, expires_in):
     """
@@ -18,9 +17,10 @@ def create_token(data, expires_in):
     payload = {
         "exp": datetime.utcnow() + expires_in,
         "iat": datetime.utcnow(),
-        "sub": json.dumps(data)
+        "sub": json.dumps(data)  # Konversi data menjadi string
     }
     return jwt.encode(payload, current_app.config["JWT_SECRET_KEY"], algorithm="HS256")
+
 
 # Helper function to decode JWT
 def decode_token(token):
@@ -31,7 +31,7 @@ def decode_token(token):
     """
     try:
         payload = jwt.decode(token, current_app.config["JWT_SECRET_KEY"], algorithms=["HS256"])
-        payload["sub"] = json.loads(payload["sub"])
+        payload["sub"] = json.loads(payload["sub"])  # Konversi kembali ke dictionary
         return payload, None
     except jwt.ExpiredSignatureError:
         return None, "Token has expired"
@@ -63,13 +63,17 @@ def login():
     refresh_token_expires = current_app.config.get("JWT_REFRESH_TOKEN_EXPIRES", timedelta(days=7))
 
     # Generate tokens
-    access_token = create_token({"id": user.id, "email": user.email}, access_token_expires)
+    access_token = create_token(
+        {"id": user.id, "email": user.email, "is_seller": user.is_seller},
+        access_token_expires
+    )
     refresh_token = create_token({"id": user.id}, refresh_token_expires)
 
     return jsonify({
         "status": "success",
         "access_token": access_token,
         "refresh_token": refresh_token,
+        "is_seller": user.is_seller,  # Include user's seller status
         "message": "Login successful"
     }), 200
 
@@ -91,12 +95,21 @@ def refresh_token():
         current_app.logger.error(f"Token decoding error: {error}")
         return jsonify({"status": "error", "message": error}), 401
 
+    # Retrieve user's latest data from the database
+    user = User.query.get(user_data["sub"]["id"])
+    if not user:
+        return jsonify({"status": "error", "message": "User not found"}), 404
+
     access_token_expires = current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES", timedelta(minutes=15))
-    access_token = create_token(user_data["sub"], access_token_expires)
+    access_token = create_token(
+        {"id": user.id, "email": user.email, "is_seller": user.is_seller},
+        access_token_expires
+    )
 
     return jsonify({
         "status": "success",
         "access_token": access_token,
+        "is_seller": user.is_seller,  # Return updated seller status
         "message": "Access token refreshed"
     }), 200
 
@@ -132,5 +145,5 @@ def check_refresh_token():
     return jsonify({
         "status": "success",
         "message": "Token is valid",
-        "payload": payload
+        "payload": payload["sub"]  # Return user data inside the token
     }), 200

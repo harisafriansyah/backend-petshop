@@ -2,8 +2,9 @@ from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from connectors.db import db
 from models.store import Store
+from models.user import User
 from datetime import datetime
-import ast
+import json
 
 @jwt_required()
 def register_store():
@@ -18,11 +19,12 @@ def register_store():
     if missing_fields:
         return jsonify({"msg": f"Missing required fields: {', '.join(missing_fields)}"}), 400
 
-    current_user = get_jwt_identity()  # Get user info from token
+    # Get user info from token
+    current_user = get_jwt_identity()
 
-    # Decode current_user to dictionary if it's a JSON string
+    # Decode current_user if it's a JSON string
     if isinstance(current_user, str):
-        current_user = ast.literal_eval(current_user)  # Safely convert string to dictionary
+        current_user = json.loads(current_user)  # Convert JSON string to dictionary
 
     user_id = current_user.get("id")
     if not user_id:
@@ -37,7 +39,7 @@ def register_store():
     existing_domain = Store.query.filter_by(nama_domain=data["nama_domain"]).first()
     if existing_domain:
         return jsonify({"msg": "Domain name is already taken"}), 400
-        
+
     # Create a new store
     new_store = Store(
         user_id=user_id,
@@ -48,7 +50,13 @@ def register_store():
         created_at=datetime.utcnow()
     )
     db.session.add(new_store)
+
+    # Update user to be a seller
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"msg": "User not found"}), 404
+
+    user.is_seller = True
     db.session.commit()
 
     return jsonify({"msg": "Store registered successfully", "status": "active"}), 201
-
