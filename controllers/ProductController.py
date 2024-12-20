@@ -4,6 +4,7 @@ from connectors.db import db
 from models.product import Product
 from models.product_image import ProductImage
 from models.store import Store
+from models.promotion import Promotion
 from datetime import datetime
 import cloudinary.uploader
 import json
@@ -12,7 +13,7 @@ from sqlalchemy import or_
 
 def search_and_filter_products():
     """
-    Search and filter products based on query parameters.
+    Search and filter products based on query parameters, including associated promotions.
     """
     search = request.args.get('search', '')
     category = request.args.get('category', '')
@@ -53,8 +54,14 @@ def search_and_filter_products():
     if not products:
         return jsonify({"msg": "No products found"}), 404
 
-    products_list = [
-        {
+    products_list = []
+    for product in products:
+        promotion = (
+            Promotion.query.filter_by(product_id=product.id)
+            .order_by(Promotion.id.desc())
+            .first()
+        )
+        product_data = {
             "id": product.id,
             "nama_produk": product.nama_produk,
             "deskripsi": product.deskripsi,
@@ -69,16 +76,16 @@ def search_and_filter_products():
                 "lebar": product.lebar,
                 "tinggi": product.tinggi,
             },
+            "promotion": promotion.to_dict() if promotion else None,
         }
-        for product in products
-    ]
+        products_list.append(product_data)
 
     return jsonify({"msg": "Products retrieved successfully", "products": products_list}), 200
 
 
 def get_products_by_category():
     """
-    Get products by category.
+    Get products by category, including associated promotions.
     """
     category = request.args.get('category')
 
@@ -90,8 +97,14 @@ def get_products_by_category():
     if not products:
         return jsonify({"msg": f"No products found for category '{category}'"}), 404
 
-    products_list = [
-        {
+    products_list = []
+    for product in products:
+        promotion = (
+            Promotion.query.filter_by(product_id=product.id)
+            .order_by(Promotion.id.desc())
+            .first()
+        )
+        product_data = {
             "id": product.id,
             "nama_produk": product.nama_produk,
             "deskripsi": product.deskripsi,
@@ -100,16 +113,16 @@ def get_products_by_category():
             "images": [{"id": img.id, "url": img.image_url} for img in product.images],
             "kategori": product.kategori,
             "jenis_hewan": product.jenis_hewan,
+            "promotion": promotion.to_dict() if promotion else None,
         }
-        for product in products
-    ]
+        products_list.append(product_data)
 
     return jsonify({"msg": "Products by category retrieved successfully", "products": products_list}), 200
 
 
 def get_products_by_animal_type():
     """
-    Get products by animal type.
+    Get products by animal type, including associated promotions.
     """
     animal_type = request.args.get('jenis_hewan')
 
@@ -121,8 +134,14 @@ def get_products_by_animal_type():
     if not products:
         return jsonify({"msg": f"No products found for animal type '{animal_type}'"}), 404
 
-    products_list = [
-        {
+    products_list = []
+    for product in products:
+        promotion = (
+            Promotion.query.filter_by(product_id=product.id)
+            .order_by(Promotion.id.desc())
+            .first()
+        )
+        product_data = {
             "id": product.id,
             "nama_produk": product.nama_produk,
             "deskripsi": product.deskripsi,
@@ -131,66 +150,82 @@ def get_products_by_animal_type():
             "images": [{"id": img.id, "url": img.image_url} for img in product.images],
             "kategori": product.kategori,
             "jenis_hewan": product.jenis_hewan,
+            "promotion": promotion.to_dict() if promotion else None,
         }
-        for product in products
-    ]
+        products_list.append(product_data)
 
     return jsonify({"msg": "Products by animal type retrieved successfully", "products": products_list}), 200
 
-# Public endpoint to retrieve all products
+
 def get_public_products():
     """
-    Retrieve all public products.
+    Retrieve all products, including associated promotions.
     """
-    products = Product.query.all()
-    if not products:
-        return jsonify({"msg": "No products found"}), 404
+    try:
+        products = Product.query.all()
+        if not products:
+            return jsonify({"msg": "No products found"}), 404
 
-    products_list = [
-        {
-            "id": product.id,
-            "nama_produk": product.nama_produk,
-            "deskripsi": product.deskripsi,
-            "harga": product.harga,
-            "stok": product.stok,
-            "images": [{"id": img.id, "url": img.image_url} for img in product.images],
-            "kategori": product.kategori,
-            "jenis_hewan": product.jenis_hewan,
-            "berat": product.berat,
-            "ukuran": {
-                "panjang": product.panjang,
-                "lebar": product.lebar,
-                "tinggi": product.tinggi,
-            },
-        }
-        for product in products
-    ]
-    return jsonify({"msg": "Public products retrieved successfully", "products": products_list}), 200
+        products_list = []
+        for product in products:
+            promotion = (
+                Promotion.query.filter_by(product_id=product.id)
+                .order_by(Promotion.id.desc())
+                .first()
+            )
+            product_data = {
+                "id": product.id,
+                "nama_produk": product.nama_produk,
+                "deskripsi": product.deskripsi,
+                "harga": product.harga,
+                "stok": product.stok,
+                "images": [{"id": img.id, "url": img.image_url} for img in product.images],
+                "kategori": product.kategori,
+                "jenis_hewan": product.jenis_hewan,
+                "berat": product.berat,
+                "ukuran": {
+                    "panjang": product.panjang,
+                    "lebar": product.lebar,
+                    "tinggi": product.tinggi,
+                },
+                "promotion": promotion.to_dict() if promotion else None,
+            }
+            products_list.append(product_data)
+
+        return jsonify({"msg": "Products retrieved successfully", "products": products_list}), 200
+
+    except Exception as e:
+        return jsonify({"msg": f"Error retrieving products: {str(e)}"}), 500
 
 
 # Public or seller-specific endpoint to retrieve a product by ID
+@jwt_required(optional=True)
 def get_product_by_id(product_id):
     """
-    Retrieve a specific product by its ID.
+    Retrieve a specific product by its ID, including associated promotion if available.
     """
     user_data = None
     try:
-        verify_jwt_in_request(optional=True)
+        # Ambil data user jika token disediakan
         user_data = get_jwt_identity()
         if isinstance(user_data, str):
             user_data = json.loads(user_data)
     except Exception as e:
         current_app.logger.info(f"No token provided or invalid token: {str(e)}")
 
+    # Ambil data produk berdasarkan ID
     product = Product.query.get(product_id)
     if not product:
         return jsonify({"msg": "Product not found"}), 404
 
-    is_seller = False
-    if user_data:
-        store = Store.query.filter_by(user_id=user_data.get("id")).first()
-        is_seller = store and store.id == product.store_id
+    # Ambil promosi terkait berdasarkan product_id
+    promotion = (
+        Promotion.query.filter_by(product_id=product.id)
+        .order_by(Promotion.id.desc())  # Jika ada beberapa promosi, ambil yang terakhir
+        .first()
+    )
 
+    # Format data produk untuk respons
     product_data = {
         "id": product.id,
         "nama_produk": product.nama_produk,
@@ -206,11 +241,9 @@ def get_product_by_id(product_id):
             "lebar": product.lebar,
             "tinggi": product.tinggi,
         },
-        "actions": {
-            "can_edit": is_seller,
-            "can_purchase": not is_seller
-        },
+        "promotion": promotion.to_dict() if promotion else None,  # Sertakan data promosi jika ada
     }
+
     return jsonify({"msg": "Product retrieved successfully", "product": product_data}), 200
 
 
@@ -309,7 +342,7 @@ def create_product():
 @jwt_required()
 def get_seller_products():
     """
-    Retrieve products for the logged-in seller's store.
+    Retrieve products for the logged-in seller's store, including promotion details.
     """
     current_user = get_jwt_identity()
     if isinstance(current_user, str):
@@ -324,8 +357,14 @@ def get_seller_products():
     if not products:
         return jsonify({"msg": "No products found for your store"}), 404
 
-    products_list = [
-        {
+    products_list = []
+    for product in products:
+        promotion = (
+            Promotion.query.filter_by(product_id=product.id)
+            .order_by(Promotion.id.desc())
+            .first()
+        )
+        products_list.append({
             "id": product.id,
             "nama_produk": product.nama_produk,
             "deskripsi": product.deskripsi,
@@ -340,9 +379,9 @@ def get_seller_products():
                 "lebar": product.lebar,
                 "tinggi": product.tinggi,
             },
-        }
-        for product in products
-    ]
+            "promotion": promotion.to_dict() if promotion else None  # Sertakan promosi
+        })
+
     return jsonify({"msg": "Seller products retrieved successfully", "products": products_list}), 200
 
 @jwt_required()

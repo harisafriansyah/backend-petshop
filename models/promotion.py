@@ -6,6 +6,7 @@ class Promotion(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=True)
+    store_id = db.Column(db.Integer, nullable=False)  # ID Toko
     promotion_name = db.Column(db.String(255), nullable=False)
     promotion_period_start = db.Column(db.DateTime, nullable=False)
     promotion_period_end = db.Column(db.DateTime, nullable=False)
@@ -13,9 +14,10 @@ class Promotion(db.Model):
     discount_percent = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(50), default="active")  # 'active', 'expired', 'upcoming'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
 
     # Relationship with Product (One-to-Many)
-    product = db.relationship('Product', back_populates='promotions', lazy=True)
+    product = db.relationship("Product", back_populates="promotions", lazy=True)
 
     # Index for optimizing queries
     __table_args__ = (

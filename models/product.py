@@ -33,8 +33,13 @@ class Product(db.Model):
     )
 
     # Relasi Promotion
-    promotions = db.relationship('Promotion', back_populates="product", cascade="all, delete-orphan")
-
+    promotions = db.relationship(
+        'Promotion', 
+        back_populates="product", 
+        cascade="all, delete-orphan", 
+        lazy='joined'  # Menggunakan string untuk opsi lazy loading
+    )
+    
     # Relationship to Cart (newly added)
     carts = db.relationship('Cart', back_populates='product', cascade='all, delete-orphan')
 
@@ -51,6 +56,13 @@ class Product(db.Model):
         return [img.image_url for img in self.images]
 
     def to_dict(self):
+        # Ambil promosi aktif terbaru (opsional: bisa diubah sesuai kebutuhan)
+        latest_promotion = (
+            Promotion.query.filter_by(product_id=self.id)
+            .order_by(Promotion.id.desc())
+            .first()
+        )
+
         return {
             "id": self.id,
             "nama_produk": self.nama_produk,
@@ -67,5 +79,7 @@ class Product(db.Model):
             "images": self.get_images(),
             "created_at": self.created_at,
             "updated_at": self.updated_at,
+            "promotion": latest_promotion.to_dict() if latest_promotion else None,  # Sertakan data promosi jika ada
         }
+
 
