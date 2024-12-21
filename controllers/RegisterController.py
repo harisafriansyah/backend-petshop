@@ -6,6 +6,7 @@ from models.user import User  # Model User untuk database
 from flask_mail import Message
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
+from flask import render_template
 
 # Cooldown time in seconds
 COOLDOWN_TIME = 60
@@ -17,13 +18,17 @@ def generate_otp():
 
 # Fungsi untuk mengirim email OTP
 def send_otp_email(email, otp_code, subject="Your Registration OTP"):
-    """Send OTP email."""
+    """Send OTP email with HTML template file."""
     try:
+        # Render template file with OTP code
+        html_content = render_template('email/otp_email.html', otp_code=otp_code)
+
+        # Send email
         msg = Message(
             subject=subject,
             sender=current_app.config["MAIL_DEFAULT_SENDER"],
             recipients=[email],
-            body=f"Your OTP is: {otp_code}. It will expire in 5 minutes."
+            html=html_content
         )
         current_app.extensions['mail'].send(msg)
         return True, "OTP sent successfully"
